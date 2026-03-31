@@ -1,297 +1,327 @@
 import { Request, Response, NextFunction } from 'express';
-import { AuthService } from './auth.service';
+import AuthService from './auth.service';
 import { sendSuccess, sendCreated } from '@common/utils/response.util';
 
 const authService = new AuthService();
 
 export class AuthController {
-  /**
-   * @swagger
-   * /api/auth/register:
-   *   post:
-   *     tags: [Auth]
-   *     summary: Register a new user
-   *     description: Creates a user account. Optionally creates a new tenant (making the user admin).
-   *     security: []
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             $ref: '#/components/schemas/RegisterRequest'
-   *     responses:
-   *       201:
-   *         description: Registration successful
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/AuthResponse'
-   *       400:
-   *         description: Validation error
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/ErrorResponse'
-   *       409:
-   *         description: Email already registered
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/ErrorResponse'
-   */
+  // Metadata ex petitione colligit
+  private getRequestMeta(req: Request): {
+    ipAddress?: string;
+    userAgent?: string;
+  } {
+    const rawUserAgent = req.headers['user-agent'];
+
+    return {
+      ipAddress: req.ip,
+      userAgent: Array.isArray(rawUserAgent)
+        ? rawUserAgent.join(', ')
+        : rawUserAgent,
+    };
+  }
+
+  // Errores communes ad status rectos convertit
+  private handleAuthError(
+    err: unknown,
+    res: Response,
+    next: NextFunction
+  ): void {
+    if (!(err instanceof Error)) {
+      next(err);
+      return;
+    }
+
+    const unauthorizedMessages = new Set([
+      'Invalid email or password',
+      'Invalid refresh token',
+      'Refresh token not found or revoked',
+      'User not found or inactive',
+      'Access token is required',
+      'Current password is incorrect',
+      'Unauthorized',
+    ]);
+
+    const badRequestMessages = new Set([
+      'Refresh token is required',
+      'Reset token is required',
+      'Password must be at least 6 characters long',
+      'Email is required',
+      'Password is required',
+      'Token is required',
+      'First name is required',
+      'Current password is required',
+      'User ID is required',
+    ]);
+
+    const conflictMessages = new Set([
+      'Email is already registered',
+    ]);
+
+    const notFoundMessages = new Set([
+      'User not found',
+      'Tenant not found or inactive',
+    ]);
+
+    if (unauthorizedMessages.has(err.message)) {
+      res.status(401).json({
+        success: false,
+        message: err.message,
+      });
+      return;
+    }
+
+    if (badRequestMessages.has(err.message)) {
+      res.status(400).json({
+        success: false,
+        message: err.message,
+      });
+      return;
+    }
+
+    if (conflictMessages.has(err.message)) {
+      res.status(409).json({
+        success: false,
+        message: err.message,
+      });
+      return;
+    }
+
+    if (notFoundMessages.has(err.message)) {
+      res.status(404).json({
+        success: false,
+        message: err.message,
+      });
+      return;
+    }
+
+    if (err.message === 'Invalid or expired reset token') {
+      res.status(400).json({
+        success: false,
+        message: err.message,
+      });
+      return;
+    }
+
+    next(err);
+  }
+
   async register(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await authService.register(req.body, {
-        ip: req.ip,
-        ua: req.headers['user-agent'],
-      });
+      const result = await authService.register(
+        req.body,
+        this.getRequestMeta(req)
+      );
+
       sendCreated(res, result, 'Registration successful');
     } catch (err) {
-      next(err);
+      this.handleAuthError(err, res, next);
     }
   }
 
-  /**
-   * @swagger
-   * /api/auth/login:
-   *   post:
-   *     tags: [Auth]
-   *     summary: Login with email and password
-   *     security: []
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             $ref: '#/components/schemas/LoginRequest'
-   *           example:
-   *             email: admin@saas.com
-   *             password: Admin@123
-   *     responses:
-   *       200:
-   *         description: Login successful
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/AuthResponse'
-   *       401:
-   *         description: Invalid credentials
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/ErrorResponse'
-   */
   async login(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await authService.login(req.body, {
-        ip: req.ip,
-        ua: req.headers['user-agent'],
-      });
+      const { email, password } = req.body ?? {};
+
+      if (!email) {
+        res.status(400).json({
+          success: false,
+          message: 'Email is required',
+        });
+        return;
+      }
+
+      if (!password) {
+        res.status(400).json({
+          success: false,
+          message: 'Password is required',
+        });
+        return;
+      }
+
+      const result = await authService.login(
+        email,
+        password,
+        this.getRequestMeta(req)
+      );
+
       sendSuccess(res, result, 'Login successful');
     } catch (err) {
-      next(err);
+      this.handleAuthError(err, res, next);
     }
   }
 
-  /**
-   * @swagger
-   * /api/auth/refresh:
-   *   post:
-   *     tags: [Auth]
-   *     summary: Refresh access token
-   *     description: Uses a valid refresh token to issue a new access + refresh token pair (rotation).
-   *     security: []
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             type: object
-   *             required: [refreshToken]
-   *             properties:
-   *               refreshToken:
-   *                 type: string
-   *     responses:
-   *       200:
-   *         description: Tokens refreshed
-   *       401:
-   *         description: Invalid or expired refresh token
-   */
-  async refreshToken(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async refreshToken(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
-      const { refreshToken } = req.body;
-      const tokens = await authService.refreshTokens(refreshToken, {
-        ip: req.ip,
-        ua: req.headers['user-agent'],
-      });
+      const { refreshToken } = req.body ?? {};
+
+      if (!refreshToken) {
+        res.status(400).json({
+          success: false,
+          message: 'Refresh token is required',
+        });
+        return;
+      }
+
+      const tokens = await authService.refreshAccessToken(
+        refreshToken,
+        this.getRequestMeta(req)
+      );
+
       sendSuccess(res, tokens, 'Tokens refreshed');
     } catch (err) {
-      next(err);
+      this.handleAuthError(err, res, next);
     }
   }
 
-  /**
-   * @swagger
-   * /api/auth/logout:
-   *   post:
-   *     tags: [Auth]
-   *     summary: Logout and revoke refresh token
-   *     requestBody:
-   *       content:
-   *         application/json:
-   *           schema:
-   *             type: object
-   *             properties:
-   *               refreshToken:
-   *                 type: string
-   *     responses:
-   *       200:
-   *         description: Logged out successfully
-   */
   async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      await authService.logout(req.body.refreshToken, req.user?.id);
+      const { refreshToken } = req.body ?? {};
+
+      if (!refreshToken) {
+        res.status(400).json({
+          success: false,
+          message: 'Refresh token is required',
+        });
+        return;
+      }
+
+      await authService.logout(refreshToken);
       sendSuccess(res, undefined, 'Logged out successfully');
     } catch (err) {
-      next(err);
+      this.handleAuthError(err, res, next);
     }
   }
 
-  /**
-   * @swagger
-   * /api/auth/me:
-   *   get:
-   *     tags: [Auth]
-   *     summary: Get current authenticated user profile
-   *     responses:
-   *       200:
-   *         description: User profile
-   *         content:
-   *           application/json:
-   *             schema:
-   *               type: object
-   *               properties:
-   *                 success:
-   *                   type: boolean
-   *                 data:
-   *                   $ref: '#/components/schemas/UserProfile'
-   *       401:
-   *         description: Unauthorized
-   */
   async getMe(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const profile = await authService.getProfile(req.user!.id);
-      sendSuccess(res, profile);
+      if (!req.user?.id) {
+        res.status(401).json({
+          success: false,
+          message: 'Unauthorized',
+        });
+        return;
+      }
+
+      const profile = await authService.getProfile(req.user.id);
+      sendSuccess(res, profile, 'Profile fetched successfully');
     } catch (err) {
-      next(err);
+      this.handleAuthError(err, res, next);
     }
   }
 
-  /**
-   * @swagger
-   * /api/auth/forgot-password:
-   *   post:
-   *     tags: [Auth]
-   *     summary: Request password reset email
-   *     security: []
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             type: object
-   *             required: [email]
-   *             properties:
-   *               email:
-   *                 type: string
-   *                 format: email
-   *     responses:
-   *       200:
-   *         description: Reset email sent (if account exists)
-   */
-  async forgotPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async forgotPassword(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
-      await authService.forgotPassword(req.body.email);
+      const { email } = req.body ?? {};
+
+      if (!email) {
+        res.status(400).json({
+          success: false,
+          message: 'Email is required',
+        });
+        return;
+      }
+
+      await authService.forgotPassword(email);
+
       sendSuccess(
         res,
         undefined,
-        'If an account with that email exists, a reset link has been sent.'
+        'If an account with that email exists, a reset link has been generated.'
       );
     } catch (err) {
-      next(err);
+      this.handleAuthError(err, res, next);
     }
   }
 
-  /**
-   * @swagger
-   * /api/auth/reset-password:
-   *   post:
-   *     tags: [Auth]
-   *     summary: Reset password with token
-   *     security: []
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             type: object
-   *             required: [token, password]
-   *             properties:
-   *               token:
-   *                 type: string
-   *               password:
-   *                 type: string
-   *                 minLength: 8
-   *     responses:
-   *       200:
-   *         description: Password reset successfully
-   *       400:
-   *         description: Invalid or expired token
-   */
-  async resetPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async resetPassword(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
-      await authService.resetPassword(req.body.token, req.body.password);
-      sendSuccess(res, undefined, 'Password reset successfully. Please login.');
+      const { token, password } = req.body ?? {};
+
+      if (!token) {
+        res.status(400).json({
+          success: false,
+          message: 'Reset token is required',
+        });
+        return;
+      }
+
+      if (!password) {
+        res.status(400).json({
+          success: false,
+          message: 'Password is required',
+        });
+        return;
+      }
+
+      const result = await authService.resetPassword(token, password);
+
+      sendSuccess(
+        res,
+        result,
+        result.message || 'Password reset successfully'
+      );
     } catch (err) {
-      next(err);
+      this.handleAuthError(err, res, next);
     }
   }
 
-  /**
-   * @swagger
-   * /api/auth/change-password:
-   *   post:
-   *     tags: [Auth]
-   *     summary: Change password (authenticated)
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             type: object
-   *             required: [currentPassword, newPassword]
-   *             properties:
-   *               currentPassword:
-   *                 type: string
-   *               newPassword:
-   *                 type: string
-   *                 minLength: 8
-   *     responses:
-   *       200:
-   *         description: Password changed
-   *       400:
-   *         description: Current password incorrect
-   */
-  async changePassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async changePassword(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
-      await authService.changePassword(
-        req.user!.id,
-        req.body.currentPassword,
-        req.body.newPassword
+      if (!req.user?.id) {
+        res.status(401).json({
+          success: false,
+          message: 'Unauthorized',
+        });
+        return;
+      }
+
+      const { currentPassword, newPassword } = req.body ?? {};
+
+      if (!currentPassword) {
+        res.status(400).json({
+          success: false,
+          message: 'Current password is required',
+        });
+        return;
+      }
+
+      if (!newPassword) {
+        res.status(400).json({
+          success: false,
+          message: 'Password is required',
+        });
+        return;
+      }
+
+      const result = await authService.changePassword(
+        req.user.id,
+        currentPassword,
+        newPassword
       );
-      sendSuccess(res, undefined, 'Password changed successfully');
+
+      sendSuccess(
+        res,
+        result,
+        result.message || 'Password changed successfully'
+      );
     } catch (err) {
-      next(err);
+      this.handleAuthError(err, res, next);
     }
   }
 }
