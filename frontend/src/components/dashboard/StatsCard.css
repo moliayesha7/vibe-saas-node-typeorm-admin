@@ -1,0 +1,87 @@
+.stats-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+  cursor: default;
+}
+
+.stats-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.stats-card--primary::before { background: var(--primary); }
+.stats-card--success::before { background: var(--success); }
+.stats-card--warning::before { background: var(--warning); }
+.stats-card--danger::before { background: var(--danger); }
+.stats-card--info::before { background: var(--info); }
+
+.stats-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.stats-card__icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stats-card__icon--primary { background: rgba(var(--primary-rgb), 0.15); color: var(--primary); }
+.stats-card__icon--success { background: rgba(34, 197, 94, 0.15); color: var(--success); }
+.stats-card__icon--warning { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+.stats-card__icon--danger { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+.stats-card__icon--info { background: rgba(59, 130, 246, 0.15); color: var(--info); }
+
+.stats-card__trend {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-full);
+}
+
+.trend-up { background: rgba(34, 197, 94, 0.15); color: var(--success); }
+.trend-down { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+
+.stats-card__value {
+  font-size: 1.875rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.stats-card__title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.stats-card__subtitle {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.stats-card--loading { min-height: 140px; }
+
+@media (max-width: 480px) {
+  .stats-card { padding: 1rem; }
+  .stats-card__value { font-size: 1.5rem; }
+}
