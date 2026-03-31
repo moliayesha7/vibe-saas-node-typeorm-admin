@@ -12,9 +12,9 @@ export const AppDataSource = new DataSource({
   url: process.env.DATABASE_URL,
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '5432'),
-  database: process.env.DB_NAME || 'saas_admin_db',
+  database: process.env.DB_NAME || 'saas_admin_node_typeorm',
   username: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || '',
+  password: process.env.DB_PASSWORD || 'root',
   ssl:
     process.env.NODE_ENV === 'production'
       ? { rejectUnauthorized: false }

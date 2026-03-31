@@ -51,10 +51,19 @@ export class UserEntity {
   @Column({ name: 'last_login', nullable: true, type: 'timestamptz' })
   lastLogin!: Date | null;
 
-  @Column({ name: 'reset_token', nullable: true, length: 255, select: false })
+  @Column({
+  name: 'reset_token',
+  type: 'varchar',
+  length: 255,
+  nullable: true,
+  })
   resetToken!: string | null;
 
-  @Column({ name: 'reset_token_expiry', nullable: true, type: 'timestamptz', select: false })
+  @Column({
+  name: 'reset_token_expiry',
+  type: 'timestamptz',
+  nullable: true,
+  })
   resetTokenExpiry!: Date | null;
 
   @Column({ name: 'tenant_id', nullable: true, type: 'uuid' })

@@ -3,24 +3,31 @@ import http from 'http';
 import { Server as SocketServer } from 'socket.io';
 import dotenv from 'dotenv';
 
-// Load env first, before any other imports that read process.env
 dotenv.config();
 
-import { createApp } from './app';
-import { initializeDatabase } from '@config/database';
 import logger from '@common/utils/logger';
 
 const PORT = parseInt(process.env.PORT || '5000', 10);
 
 const start = async (): Promise<void> => {
-  // ─── Database ──────────────────────────────────────────────────────────────
+  const databaseModule = await import('./config/database');
+  const { initializeDatabase, closeDatabase } = databaseModule;
+
+  if (typeof initializeDatabase !== 'function') {
+    logger.error('Database module exports:', Object.keys(databaseModule));
+    throw new Error('initializeDatabase is not a function');
+  }
+
   await initializeDatabase();
 
-  // ─── Express app ──────────────────────────────────────────────────────────
+  // Data initialia post initium database seruntur
+  const { seedInitialData } = await import('./config/seed');
+  await seedInitialData();
+
+  const { createApp } = await import('./app');
   const app = createApp();
   const httpServer = http.createServer(app);
 
-  // ─── Socket.io ────────────────────────────────────────────────────────────
   const io = new SocketServer(httpServer, {
     cors: {
       origin: (process.env.ALLOWED_ORIGINS || 'http://localhost:5173')
@@ -32,36 +39,37 @@ const start = async (): Promise<void> => {
     transports: ['websocket', 'polling'],
   });
 
-  // Delegate socket logic to the existing socketService
   const { initializeSocket } = await import('./services/socketService');
   initializeSocket(io);
 
-  // ─── Listen ────────────────────────────────────────────────────────────────
   httpServer.listen(PORT, () => {
-    logger.info(`🚀 Server running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
+    logger.info(
+      `🚀 Server running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`
+    );
     logger.info(`📖 API docs: http://localhost:${PORT}/api/docs`);
     logger.info(`❤  Health:   http://localhost:${PORT}/api/health`);
   });
 
-  // ─── Graceful shutdown ─────────────────────────────────────────────────────
+  // Clausura lenis servatoris
   const shutdown = async (signal: string): Promise<void> => {
     logger.info(`${signal} received — shutting down gracefully`);
+
     httpServer.close(async () => {
-      const { closeDatabase } = await import('@config/database');
-      await closeDatabase();
+      if (typeof closeDatabase === 'function') {
+        await closeDatabase();
+      }
       logger.info('Server closed');
       process.exit(0);
     });
 
-    // Force exit after 10s if close stalls
     setTimeout(() => {
       logger.error('Forced exit after timeout');
       process.exit(1);
     }, 10_000).unref();
   };
 
-  process.on('SIGTERM', () => shutdown('SIGTERM'));
-  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => void shutdown('SIGTERM'));
+  process.on('SIGINT', () => void shutdown('SIGINT'));
 
   process.on('uncaughtException', (err) => {
     logger.error('Uncaught exception:', err);

@@ -1,6 +1,6 @@
 # SaaS Admin Dashboard
 
-A production-ready, full-stack SaaS admin platform built with Node.js + React.js.
+A production-ready, full-stack SaaS admin platform built with Node.js + React.js + TypeORM.
 
 ---
 
@@ -144,11 +144,19 @@ saas-node-admin/
 ### 2. Backend Setup
 ```bash
 cd backend
-cp .env.example .env
-# Edit .env with your credentials
 npm install
-npm run dev        # Runs on http://localhost:5000
+cp .env.example .env        # fill in DB creds
+npm run migration:run       # create tables
+npm run dev                 # starts on :5000, docs at /api/docs
+npm test                    # integration tests (needs test DB)   
+# Runs on http://localhost:5000
 ```
+
+
+DROP TABLE IF EXISTS typeorm_migrations;
+
+npm run typeorm -- migration:generate src/migrations/InitSchema -d src/config/data-source.cli.ts
+
 
 ### 3. Frontend Setup
 ```bash

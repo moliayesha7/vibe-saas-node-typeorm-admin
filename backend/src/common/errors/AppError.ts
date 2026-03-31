@@ -20,9 +20,13 @@ export class ValidationError extends AppError {
   }
 }
 
-export class UnauthorizedError extends AppError {
-  constructor(message = 'Unauthorized. Please login.') {
-    super(message, 401);
+export class UnauthorizedError extends Error {
+  statusCode: number;
+
+  constructor(message = 'Unauthorized') {
+    super(message);
+    this.name = 'UnauthorizedError';
+    this.statusCode = 401;
   }
 }
 

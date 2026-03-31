@@ -17,11 +17,20 @@ export class TenantEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ length: 100 })
+  // Columna nunc obligatoria est
+  @Column({
+    type: 'varchar',
+    length: 100,
+    nullable: false,
+  })
   name!: string;
 
   @Index({ unique: true })
-  @Column({ length: 150, unique: true })
+  @Column({
+    type: 'varchar',
+    length: 150,
+    unique: true,
+  })
   slug!: string;
 
   @Column({
@@ -31,10 +40,17 @@ export class TenantEntity {
   })
   plan!: TenantPlan;
 
-  @Column({ name: 'is_active', default: true })
+  @Column({
+    name: 'is_active',
+    type: 'boolean',
+    default: true,
+  })
   isActive!: boolean;
 
-  @Column({ type: 'jsonb', default: '{}' })
+  @Column({
+    type: 'jsonb',
+    default: {},
+  })
   settings!: Record<string, unknown>;
 
   @CreateDateColumn({ name: 'created_at' })
@@ -43,10 +59,11 @@ export class TenantEntity {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt!: Date;
 
-  // ─── Relations ───────────────────────────────────────────────────
+  // Relationes ad usores
   @OneToMany(() => UserEntity, (user) => user.tenant)
   users!: UserEntity[];
 
+  // Relationes ad solutiones
   @OneToMany(() => PaymentEntity, (payment) => payment.tenant)
   payments!: PaymentEntity[];
 }

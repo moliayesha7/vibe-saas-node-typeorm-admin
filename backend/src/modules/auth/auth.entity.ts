@@ -15,22 +15,40 @@ export class RefreshTokenEntity {
   id!: string;
 
   @Index({ unique: true })
-  @Column({ unique: true, type: 'text' })
+ @Column({
+  type: 'text',
+  })
   token!: string;
 
   @Column({ name: 'user_id', type: 'uuid' })
   userId!: string;
 
-  @Column({ name: 'expires_at', type: 'timestamptz' })
+  @Column({
+  name: 'expires_at',
+  type: 'timestamptz',
+  })
   expiresAt!: Date;
 
-  @Column({ name: 'is_revoked', default: false })
+  @Column({
+  name: 'is_revoked',
+  type: 'boolean',
+  default: false,
+  })
   isRevoked!: boolean;
 
-  @Column({ name: 'ip_address', nullable: true, length: 45 })
+ @Column({
+  name: 'ip_address',
+  type: 'varchar',
+  length: 45, // supports IPv6
+  nullable: true,
+  })
   ipAddress!: string | null;
 
-  @Column({ name: 'user_agent', nullable: true, type: 'text' })
+  @Column({
+  name: 'user_agent',
+  type: 'text',
+  nullable: true,
+  })
   userAgent!: string | null;
 
   @CreateDateColumn({ name: 'created_at' })

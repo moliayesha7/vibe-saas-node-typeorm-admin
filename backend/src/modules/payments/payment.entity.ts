@@ -23,7 +23,15 @@ export class PaymentEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ type: 'decimal', precision: 12, scale: 2 })
+  @Column({
+  type: 'decimal',
+  precision: 12,
+  scale: 2,
+  transformer: {
+    to: (value: number) => value,
+    from: (value: string) => parseFloat(value),
+  },
+  })
   amount!: number;
 
   @Column({ length: 10, default: 'BDT' })
@@ -37,13 +45,28 @@ export class PaymentEntity {
   })
   status!: PaymentStatus;
 
-  @Column({ name: 'bkash_payment_id', nullable: true, length: 255 })
+  @Column({
+  name: 'bkash_payment_id',
+  type: 'varchar',
+  length: 255,
+  nullable: true,
+  })
   bkashPaymentId!: string | null;
 
-  @Column({ name: 'transaction_id', nullable: true, length: 255 })
+ @Column({
+  name: 'transaction_id',
+  type: 'varchar',
+  length: 255,
+  nullable: true,
+  })
   transactionId!: string | null;
 
-  @Column({ name: 'order_id', nullable: true, length: 255 })
+  @Column({
+    name: 'order_id',
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
   orderId!: string | null;
 
   @Column({ nullable: true, type: 'text' })

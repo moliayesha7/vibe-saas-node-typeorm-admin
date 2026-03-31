@@ -6,7 +6,7 @@ import { CreateNotificationDtoType, NotificationQueryDtoType } from './dto/notif
 import { buildPaginationMeta, PaginationMeta } from '@common/utils/pagination.util';
 import { NotFoundError, ForbiddenError } from '@common/errors/AppError';
 import { UserEntity } from '@modules/users/user.entity';
-import { emitToUser } from '../../../services/socketService';
+import { emitToUser } from '../../services/socketService';
 
 export class NotificationService {
   private notificationRepo: NotificationRepository;
