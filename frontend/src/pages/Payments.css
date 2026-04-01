@@ -1,5 +1,6 @@
 /* Payments page - inherits most styles from Users.css */
+@import './Users.css';
 .payments-page {}
 
 /* Import shared styles */
-@import './Users.css';
+

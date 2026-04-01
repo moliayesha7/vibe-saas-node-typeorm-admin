@@ -9,7 +9,8 @@ const notificationSlice = createSlice({
   reducers: {
     addNotification: (state, action) => {
       state.items.unshift(action.payload);
-      if (!action.payload.is_read) state.unreadCount++;
+      // Backend entity uses isRead (camelCase)
+      if (!action.payload.isRead) state.unreadCount++;
     },
     setNotifications: (state, action) => {
       state.items = action.payload;
@@ -19,13 +20,13 @@ const notificationSlice = createSlice({
     },
     markAsRead: (state, action) => {
       const item = state.items.find(n => n.id === action.payload);
-      if (item && !item.is_read) {
-        item.is_read = true;
+      if (item && !item.isRead) {
+        item.isRead = true;
         state.unreadCount = Math.max(0, state.unreadCount - 1);
       }
     },
     markAllAsRead: (state) => {
-      state.items.forEach(n => { n.is_read = true; });
+      state.items.forEach(n => { n.isRead = true; });
       state.unreadCount = 0;
     },
   },

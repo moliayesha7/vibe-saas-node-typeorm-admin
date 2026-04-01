@@ -24,6 +24,7 @@ const Profile = lazy(() => import('./pages/Profile'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Notifications = lazy(() => import('./pages/Notifications'));
 const Files = lazy(() => import('./pages/Files'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 
 const AppLayout = ({ theme, onThemeToggle }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -106,6 +107,7 @@ const AppRouter = () => {
           {/* Public routes */}
           <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />} />
           <Route path="/register" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Register />} />
+          <Route path="/forgot-password" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <ForgotPassword />} />
 
           {/* Protected app layout */}
           <Route path="/*" element={

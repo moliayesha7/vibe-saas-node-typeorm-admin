@@ -1,31 +1,29 @@
 import React, { useState } from 'react';
-import { Plus, Building2, RefreshCw, Users, Edit2, Trash2 } from 'lucide-react';
-import { baseApi } from '../store/api/baseApi';
-import { useDispatch } from 'react-redux';
+import { Plus, Building2, RefreshCw, Users } from 'lucide-react';
 import Button from '../components/common/Button';
 import Modal from '../components/common/Modal';
 import { SkeletonTable } from '../components/common/Loader';
-import { formatDate, formatCurrency } from '../utils/formatters';
+import { formatDate } from '../utils/formatters';
 import { PLAN_COLORS } from '../utils/constants';
 import axiosInstance from '../utils/axiosInstance';
 import toast from 'react-hot-toast';
 import { useForm } from 'react-hook-form';
 
-const useTenants = (params) => {
+const useTenants = (page) => {
   const [data, setData] = React.useState(null);
   const [isLoading, setIsLoading] = React.useState(true);
 
   const fetchTenants = React.useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await axiosInstance.get('/tenants', { params });
+      const res = await axiosInstance.get('/tenants', { params: { page, limit: 10 } });
       setData(res.data);
     } catch {
       toast.error('Failed to load tenants');
     } finally {
       setIsLoading(false);
     }
-  }, [params.page]);
+  }, [page]);
 
   React.useEffect(() => { fetchTenants(); }, [fetchTenants]);
   return { data, isLoading, refetch: fetchTenants };
@@ -85,7 +83,9 @@ const TenantModal = ({ isOpen, onClose, onSuccess }) => {
 const Tenants = () => {
   const [page, setPage] = useState(1);
   const [showModal, setShowModal] = useState(false);
-  const { data, isLoading, refetch } = useTenants({ page, limit: 10 });
+  const { data, isLoading, refetch } = useTenants(page);
+
+  // API returns { success, data: [...], pagination }
   const tenants = data?.data || [];
   const pagination = data?.pagination;
 
@@ -129,7 +129,11 @@ const Tenants = () => {
               </thead>
               <tbody>
                 {tenants.length === 0 ? (
-                  <tr><td colSpan="6" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>No tenants found</td></tr>
+                  <tr>
+                    <td colSpan="6" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                      No tenants found
+                    </td>
+                  </tr>
                 ) : tenants.map((tenant) => (
                   <tr key={tenant.id}>
                     <td>
@@ -147,15 +151,24 @@ const Tenants = () => {
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                         <Users size={14} style={{ color: 'var(--text-muted)' }} />
-                        <span>{tenant.user_count || 0}</span>
+                        {/* userCount is mapped via loadRelationCountAndMap in TenantRepository */}
+                        <span>{tenant.userCount ?? 0}</span>
                       </div>
                     </td>
-                    <td><span className={`badge ${tenant.is_active ? 'badge-success' : 'badge-danger'}`}>{tenant.is_active ? 'Active' : 'Inactive'}</span></td>
-                    <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{formatDate(tenant.created_at)}</td>
+                    <td>
+                      <span className={`badge ${tenant.isActive ? 'badge-success' : 'badge-danger'}`}>
+                        {tenant.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{formatDate(tenant.createdAt)}</td>
                     <td>
                       <div className="action-buttons">
-                        <button className="action-btn action-btn--danger" onClick={() => handleDelete(tenant.id, tenant.name)} title="Deactivate">
-                          <Trash2 size={14} />
+                        <button
+                          className="action-btn action-btn--danger"
+                          onClick={() => handleDelete(tenant.id, tenant.name)}
+                          title="Deactivate"
+                        >
+                          <Building2 size={14} />
                         </button>
                       </div>
                     </td>

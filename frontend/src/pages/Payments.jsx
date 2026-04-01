@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CreditCard, DollarSign, TrendingUp, RefreshCw, Plus, RotateCcw } from 'lucide-react';
+import { CreditCard, DollarSign, TrendingUp, RefreshCw, RotateCcw } from 'lucide-react';
 import { useGetPaymentsQuery, useGetPaymentStatsQuery, useRefundPaymentMutation } from '../store/api/paymentsApi';
 import { useAuth } from '../hooks/useAuth';
 import Button from '../components/common/Button';
@@ -19,6 +19,7 @@ const Payments = () => {
   const { data: stats } = useGetPaymentStatsQuery();
   const [refundPayment, { isLoading: refunding }] = useRefundPaymentMutation();
 
+  // API returns { success, data: [...], pagination }
   const payments = data?.data || [];
   const pagination = data?.pagination;
 
@@ -44,31 +45,31 @@ const Payments = () => {
         <Button variant="ghost" icon={<RefreshCw size={16} />} onClick={refetch}>Refresh</Button>
       </div>
 
-      {/* Stats */}
+      {/* Stats — backend returns camelCase aliases from raw SQL */}
       <div className="stats-grid" style={{ marginBottom: '1.5rem' }}>
         <StatsCard
           title="Total Revenue"
-          value={formatCurrency(stats?.total_revenue)}
+          value={formatCurrency(stats?.totalRevenue)}
           icon={<DollarSign size={22} />}
           color="primary"
         />
         <StatsCard
           title="Completed"
-          value={stats?.completed_count || 0}
+          value={stats?.completedCount || 0}
           subtitle="Successful transactions"
           icon={<CreditCard size={22} />}
           color="success"
         />
         <StatsCard
           title="Pending"
-          value={stats?.pending_count || 0}
+          value={stats?.pendingCount || 0}
           subtitle="Awaiting completion"
           icon={<RefreshCw size={22} />}
           color="warning"
         />
         <StatsCard
           title="Monthly Revenue"
-          value={formatCurrency(stats?.revenue_this_month)}
+          value={formatCurrency(stats?.revenueThisMonth)}
           subtitle="This month"
           icon={<TrendingUp size={22} />}
           color="info"
@@ -77,7 +78,11 @@ const Payments = () => {
 
       {/* Filter */}
       <div className="filters-bar card" style={{ marginBottom: '1.25rem' }}>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ width: 'auto', minWidth: '150px' }}>
+        <select
+          value={statusFilter}
+          onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+          style={{ width: 'auto', minWidth: '150px' }}
+        >
           <option value="">All Status</option>
           <option value="pending">Pending</option>
           <option value="completed">Completed</option>
@@ -105,17 +110,23 @@ const Payments = () => {
               </thead>
               <tbody>
                 {payments.length === 0 ? (
-                  <tr><td colSpan="7" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>No payments found</td></tr>
+                  <tr>
+                    <td colSpan="7" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                      No payments found
+                    </td>
+                  </tr>
                 ) : payments.map((payment) => (
                   <tr key={payment.id}>
                     <td>
                       <div className="user-cell">
                         <div className="user-cell__avatar" style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)' }}>
-                          {getInitials(payment.first_name, payment.last_name)}
+                          {getInitials(payment.user?.firstName, payment.user?.lastName)}
                         </div>
                         <div>
-                          <span className="user-cell__name">{payment.first_name} {payment.last_name}</span>
-                          <span className="user-cell__email">{payment.user_email}</span>
+                          <span className="user-cell__name">
+                            {payment.user ? `${payment.user.firstName} ${payment.user.lastName}` : 'Unknown'}
+                          </span>
+                          <span className="user-cell__email">{payment.user?.email || '-'}</span>
                         </div>
                       </div>
                     </td>
@@ -123,13 +134,18 @@ const Payments = () => {
                       {payment.status === 'refunded' ? '-' : '+'}{formatCurrency(payment.amount)}
                     </td>
                     <td><span className={`badge ${PAYMENT_STATUS_COLORS[payment.status]}`}>{payment.status}</span></td>
-                    <td style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>{payment.order_id || '-'}</td>
-                    <td style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>{payment.transaction_id || '-'}</td>
-                    <td style={{ fontSize: '0.8rem' }}>{formatDateTime(payment.created_at)}</td>
+                    <td style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>{payment.orderId || '-'}</td>
+                    <td style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>{payment.transactionId || '-'}</td>
+                    <td style={{ fontSize: '0.8rem' }}>{formatDateTime(payment.createdAt)}</td>
                     {isAdmin && (
                       <td>
                         {payment.status === 'completed' && (
-                          <button className="action-btn" onClick={() => handleRefund(payment.id)} title="Refund" disabled={refunding}>
+                          <button
+                            className="action-btn"
+                            onClick={() => handleRefund(payment.id)}
+                            title="Refund"
+                            disabled={refunding}
+                          >
                             <RotateCcw size={14} />
                           </button>
                         )}

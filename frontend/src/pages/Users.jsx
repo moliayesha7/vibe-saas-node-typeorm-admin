@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Filter, UserCheck, UserX, Trash2, Edit2, RefreshCw } from 'lucide-react';
+import { Plus, Search, RefreshCw, Edit2, Trash2 } from 'lucide-react';
 import { useGetUsersQuery, useDeleteUserMutation, useCreateUserMutation, useUpdateUserMutation } from '../store/api/usersApi';
 import { useAuth } from '../hooks/useAuth';
 import { useDebounce } from '../hooks/useDebounce';
@@ -10,14 +10,15 @@ import { formatDate, formatRelativeTime, getInitials } from '../utils/formatters
 import { ROLE_COLORS, ROLE_LABELS } from '../utils/constants';
 import toast from 'react-hot-toast';
 import { useForm } from 'react-hook-form';
-import clsx from 'clsx';
 import './Users.css';
 
 const UserModal = ({ isOpen, onClose, user }) => {
   const [createUser, { isLoading: creating }] = useCreateUserMutation();
   const [updateUser, { isLoading: updating }] = useUpdateUserMutation();
   const { register, handleSubmit, reset, formState: { errors } } = useForm({
-    defaultValues: user ? { firstName: user.first_name, lastName: user.last_name, role: user.role } : {}
+    defaultValues: user
+      ? { firstName: user.firstName, lastName: user.lastName, role: user.role }
+      : {},
   });
 
   const onSubmit = async (data) => {
@@ -102,6 +103,7 @@ const Users = () => {
   const { data, isLoading, refetch } = useGetUsersQuery({ search: debouncedSearch, role: roleFilter, page, limit: 10 });
   const [deleteUser] = useDeleteUserMutation();
 
+  // API returns { success, data: [...], pagination }
   const users = data?.data || [];
   const pagination = data?.pagination;
 
@@ -111,7 +113,7 @@ const Users = () => {
       await deleteUser(id).unwrap();
       toast.success('User deactivated');
     } catch (err) {
-      toast.error(err?.data?.message || 'Failed to delete');
+      toast.error(err?.data?.message || 'Failed to deactivate');
     }
   };
 
@@ -142,10 +144,10 @@ const Users = () => {
             type="text"
             placeholder="Search by name or email..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           />
         </div>
-        <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className="filter-select">
+        <select value={roleFilter} onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }} className="filter-select">
           <option value="">All Roles</option>
           <option value="admin">Admin</option>
           <option value="manager">Manager</option>
@@ -172,38 +174,46 @@ const Users = () => {
               </thead>
               <tbody>
                 {users.length === 0 ? (
-                  <tr><td colSpan="6" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>No users found</td></tr>
+                  <tr>
+                    <td colSpan="6" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                      No users found
+                    </td>
+                  </tr>
                 ) : users.map((user) => (
                   <tr key={user.id}>
                     <td>
                       <div className="user-cell">
                         <div className="user-cell__avatar">
-                          {user.avatar_url
-                            ? <img src={user.avatar_url} alt={user.first_name} />
-                            : <span>{getInitials(user.first_name, user.last_name)}</span>
+                          {user.avatarUrl
+                            ? <img src={user.avatarUrl} alt={user.firstName} />
+                            : <span>{getInitials(user.firstName, user.lastName)}</span>
                           }
                         </div>
                         <div className="user-cell__info">
-                          <span className="user-cell__name">{user.first_name} {user.last_name}</span>
+                          <span className="user-cell__name">{user.firstName} {user.lastName}</span>
                           <span className="user-cell__email">{user.email}</span>
                         </div>
                       </div>
                     </td>
                     <td><span className={`badge ${ROLE_COLORS[user.role]}`}>{ROLE_LABELS[user.role]}</span></td>
                     <td>
-                      <span className={`badge ${user.is_active ? 'badge-success' : 'badge-danger'}`}>
-                        {user.is_active ? 'Active' : 'Inactive'}
+                      <span className={`badge ${user.isActive ? 'badge-success' : 'badge-danger'}`}>
+                        {user.isActive ? 'Active' : 'Inactive'}
                       </span>
                     </td>
-                    <td>{formatRelativeTime(user.last_login)}</td>
-                    <td>{formatDate(user.created_at)}</td>
+                    <td>{formatRelativeTime(user.lastLogin)}</td>
+                    <td>{formatDate(user.createdAt)}</td>
                     {(isAdmin || isManager) && (
                       <td>
                         <div className="action-buttons">
                           <button className="action-btn" onClick={() => { setEditUser(user); setShowModal(true); }} title="Edit">
                             <Edit2 size={14} />
                           </button>
-                          <button className="action-btn action-btn--danger" onClick={() => handleDelete(user.id, `${user.first_name} ${user.last_name}`)} title="Delete">
+                          <button
+                            className="action-btn action-btn--danger"
+                            onClick={() => handleDelete(user.id, `${user.firstName} ${user.lastName}`)}
+                            title="Deactivate"
+                          >
                             <Trash2 size={14} />
                           </button>
                         </div>

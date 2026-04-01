@@ -26,7 +26,7 @@ router.get('/stats', requirePermission('payments:read'), paymentController.getSt
 router.post(
   '/',
   paymentRateLimiter,
-  requirePermission('payments:create'),
+  requirePermission('payments:write'),
   validate(CreatePaymentDto),
   paymentController.createPayment.bind(paymentController)
 );

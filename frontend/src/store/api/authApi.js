@@ -18,8 +18,13 @@ export const authApi = baseApi.injectEndpoints({
       },
     }),
     logout: builder.mutation({
-      query: () => ({ url: '/auth/logout', method: 'POST' }),
+      // Send stored refreshToken so the server can revoke it
+      query: () => {
+        const refreshToken = localStorage.getItem('refreshToken');
+        return { url: '/auth/logout', method: 'POST', body: { refreshToken } };
+      },
       async onQueryStarted(_, { dispatch, queryFulfilled }) {
+        // Clear local state regardless of server response
         await queryFulfilled.catch(() => {});
         dispatch(logout());
         dispatch(baseApi.util.resetApiState());

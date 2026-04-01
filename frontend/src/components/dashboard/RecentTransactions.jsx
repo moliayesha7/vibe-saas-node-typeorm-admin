@@ -26,13 +26,13 @@ const RecentTransactions = () => {
             payments.map((payment) => (
               <div key={payment.id} className="transaction-item">
                 <div className="transaction-avatar">
-                  {getInitials(payment.first_name, payment.last_name)}
+                  {getInitials(payment.user?.firstName, payment.user?.lastName)}
                 </div>
                 <div className="transaction-info">
                   <span className="transaction-name">
-                    {payment.first_name} {payment.last_name}
+                    {payment.user ? `${payment.user.firstName} ${payment.user.lastName}` : 'Unknown'}
                   </span>
-                  <span className="transaction-desc">{payment.description || payment.order_id}</span>
+                  <span className="transaction-desc">{payment.description || payment.orderId}</span>
                 </div>
                 <div className="transaction-right">
                   <span className="transaction-amount">
@@ -41,7 +41,7 @@ const RecentTransactions = () => {
                   <span className={`badge ${PAYMENT_STATUS_COLORS[payment.status]}`}>
                     {payment.status}
                   </span>
-                  <span className="transaction-time">{formatRelativeTime(payment.created_at)}</span>
+                  <span className="transaction-time">{formatRelativeTime(payment.createdAt)}</span>
                 </div>
               </div>
             ))

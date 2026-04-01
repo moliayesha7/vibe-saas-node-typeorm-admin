@@ -20,6 +20,7 @@ import userRoutes from '@modules/users/user.routes';
 import tenantRoutes from '@modules/tenants/tenant.routes';
 import paymentRoutes from '@modules/payments/payment.routes';
 import notificationRoutes from '@modules/notifications/notification.routes';
+import analyticsRoutes from '@modules/analytics/analytics.routes';
 
 export const createApp = (): Application => {
   const app = express();
@@ -90,6 +91,7 @@ export const createApp = (): Application => {
   app.use('/api/tenants', tenantRoutes);
   app.use('/api/payments', paymentRoutes);
   app.use('/api/notifications', notificationRoutes);
+  app.use('/api/analytics', analyticsRoutes);
 
   // ─── Serve static uploads (local dev fallback) ─────────────────────────────
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));

@@ -9,10 +9,10 @@ import toast from 'react-hot-toast';
 import clsx from 'clsx';
 
 const TYPE_ICONS = {
-  info: <Info size={16} style={{ color: 'var(--info)' }} />,
+  info:    <Info size={16} style={{ color: 'var(--info)' }} />,
   success: <CheckCircle size={16} style={{ color: 'var(--success)' }} />,
   warning: <AlertTriangle size={16} style={{ color: 'var(--warning)' }} />,
-  error: <XCircle size={16} style={{ color: 'var(--danger)' }} />,
+  error:   <XCircle size={16} style={{ color: 'var(--danger)' }} />,
 };
 
 const Notifications = () => {
@@ -36,10 +36,10 @@ const Notifications = () => {
         <div>
           <h1>Notifications</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-            {notifications.filter(n => !n.is_read).length} unread
+            {notifications.filter(n => !n.isRead).length} unread
           </p>
         </div>
-        {notifications.some(n => !n.is_read) && (
+        {notifications.some(n => !n.isRead) && (
           <Button variant="secondary" size="sm" icon={<CheckCheck size={16} />} onClick={handleMarkAllRead}>
             Mark All Read
           </Button>
@@ -56,15 +56,15 @@ const Notifications = () => {
           notifications.map((notification) => (
             <div
               key={notification.id}
-              className={clsx('notification-item', { unread: !notification.is_read })}
-              onClick={() => !notification.is_read && handleMarkRead(notification.id)}
+              className={clsx('notification-item', { unread: !notification.isRead })}
+              onClick={() => !notification.isRead && handleMarkRead(notification.id)}
               style={{
                 display: 'flex',
                 gap: '0.875rem',
                 padding: '1rem',
                 borderBottom: '1px solid var(--border)',
-                cursor: !notification.is_read ? 'pointer' : 'default',
-                background: !notification.is_read ? 'rgba(var(--primary-rgb), 0.04)' : 'transparent',
+                cursor: !notification.isRead ? 'pointer' : 'default',
+                background: !notification.isRead ? 'rgba(var(--primary-rgb), 0.04)' : 'transparent',
                 transition: 'background 0.15s ease',
               }}
             >
@@ -73,11 +73,11 @@ const Notifications = () => {
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <span style={{ fontWeight: !notification.is_read ? 600 : 500, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                  <span style={{ fontWeight: !notification.isRead ? 600 : 500, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
                     {notification.title}
                   </span>
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', flexShrink: 0 }}>
-                    {formatRelativeTime(notification.created_at)}
+                    {formatRelativeTime(notification.createdAt)}
                   </span>
                 </div>
                 {notification.message && (
@@ -86,7 +86,7 @@ const Notifications = () => {
                   </p>
                 )}
               </div>
-              {!notification.is_read && (
+              {!notification.isRead && (
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--primary)', flexShrink: 0, marginTop: 4 }} />
               )}
             </div>

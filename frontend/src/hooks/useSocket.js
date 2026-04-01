@@ -40,19 +40,19 @@ export const useSocket = (isAuthenticated) => {
       console.log('Socket disconnected:', reason);
     });
 
-    socket.on('notification', (notification) => {
+    socket.on('notification:new', ({ notification }) => {
       dispatch(addNotification(notification));
       toast(notification.message || notification.title, {
         icon: notification.type === 'success' ? '✅' : notification.type === 'error' ? '❌' : 'ℹ️',
       });
     });
 
-    socket.on('payment:completed', ({ payment }) => {
-      toast.success(`Payment of ${payment?.amount} BDT completed!`);
+    socket.on('payment:completed', (data) => {
+      toast.success(`Payment of ${data?.amount} BDT completed!`);
     });
 
     socket.on('user:created', ({ user }) => {
-      toast.success(`New user ${user?.first_name} ${user?.last_name} joined!`);
+      toast.success(`New user ${user?.firstName} ${user?.lastName} joined!`);
     });
 
     socket.on('connect_error', (err) => {

@@ -20,13 +20,10 @@ export class ValidationError extends AppError {
   }
 }
 
-export class UnauthorizedError extends Error {
-  statusCode: number;
-
+export class UnauthorizedError extends AppError {
   constructor(message = 'Unauthorized') {
-    super(message);
+    super(message, 401);
     this.name = 'UnauthorizedError';
-    this.statusCode = 401;
   }
 }
 
