@@ -1,8 +1,31 @@
 import { Request, Response, NextFunction } from 'express';
-import { ZodSchema, ZodError } from 'zod';
+import { ZodSchema } from 'zod';
 import { ValidationError } from '@common/errors/AppError';
 
 type RequestPart = 'body' | 'query' | 'params';
+
+// Valores vacuos in undefined convertit
+const normalizeEmptyQueryValues = (value: unknown): unknown => {
+  if (typeof value === 'string') {
+    return value.trim() === '' ? undefined : value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeEmptyQueryValues(item));
+  }
+
+  if (value && typeof value === 'object') {
+    const normalized: Record<string, unknown> = {};
+
+    for (const [key, item] of Object.entries(value)) {
+      normalized[key] = normalizeEmptyQueryValues(item);
+    }
+
+    return normalized;
+  }
+
+  return value;
+};
 
 /**
  * Middleware factory for Zod schema validation.
@@ -13,16 +36,30 @@ export const validate = (schema: ZodSchema, part: RequestPart = 'body') => {
     const result = schema.safeParse(req[part]);
 
     if (!result.success) {
-      const errors = result.error.errors.map((e) => ({
+      const errors = result.error.issues.map((e) => ({
         field: e.path.join('.'),
         message: e.message,
       }));
+
       next(new ValidationError(errors));
       return;
     }
 
-    // Replace with parsed (type-safe, stripped) value
-    (req as Record<string, unknown>)[part] = result.data;
+    // Pars petitionis valide reponitur
+    switch (part) {
+      case 'body':
+        req.body = result.data;
+        break;
+      case 'query':
+        req.query = result.data as Request['query'];
+        break;
+      case 'params':
+        req.params = result.data as Request['params'];
+        break;
+      default:
+        break;
+    }
+
     next();
   };
-};
+}
